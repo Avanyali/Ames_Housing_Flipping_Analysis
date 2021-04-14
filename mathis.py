@@ -74,3 +74,54 @@ def corrs_selection(df, col, threshold = .5, greater_than = True):
         sale_corr = {key: val for key, val in sale_corr.items() if val < threshold}
 
     return pd.DataFrame(sale_corr, index =[0])
+
+def feature_bucket_candidates(df, max_types = 20):
+    candidates = {}
+
+    for col in df.columns.tolist():
+        percents = df[col].value_counts(normalize = True).to_dict()
+
+        for key, val in percents.items():
+            if (len(percents.keys()) < max_types or df[col].dtypes == np.dtype('O')) and val < 1/len(percents.keys()):
+                if col in candidates:
+                    candidates[col].append((key, val, 1/len(percents.keys())))
+                else:
+                    candidates[col] = [(key, val, 1/len(percents.keys()))]
+
+    return candidates
+
+def greedy_bucket_selection(bucket_candidates):
+    bucket_recommendations = {}
+
+    for col, percents in bucket_candidates.items():
+        bucket_recommendations[col] = []
+        label_percents = bucket_candidates[col][::-1]
+        thresh = label_percents[0][2]
+
+        cumsum = 0
+        bucket = []
+        for i in range(0, len(label_percents)):
+            cumsum += label_percents[i][1]
+            bucket.append(label_percents[i][0])
+
+            if cumsum > thresh:
+                cumsum = 0
+                bucket_recommendations[col].append(bucket)
+                bucket = []
+
+        if bucket not in bucket_recommendations[col] and not bucket == []:
+            bucket_recommendations[col].append(bucket)
+
+    return bucket_recommendations
+
+def map_buckets(df, buckets):
+    for col, bucket_list in buckets.items():
+        for recommendation in bucket_list:
+            if len(recommendation) > 1:
+                recommendation.sort()
+                strings = map(str, recommendation)
+                new_label = '(' + "_".join(strings) + ')'
+
+                df[col] = df[col].map(lambda x: new_label if x in recommendation else x)
+
+    return df
