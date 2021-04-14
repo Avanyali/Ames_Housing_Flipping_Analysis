@@ -66,23 +66,23 @@ def outlier_dict(df, deviation = 3):
 
     return outlier_values
 
-def corrs_selection(df, col, threshold = .5, greater_than = True):
+def corrs_selection(df, col, threshold = .5):
     sale_corr = df.corr().to_dict()[col]
-    if greater_than:
-        sale_corr = {key: val for key, val in sale_corr.items() if val > threshold}
-    else:
-        sale_corr = {key: val for key, val in sale_corr.items() if val < threshold}
+    sale_corr = {key: val for key, val in sale_corr.items() if abs(val) > threshold}
 
+    sale_corr.pop(col)
     return pd.DataFrame(sale_corr, index =[0])
 
-def feature_bucket_candidates(df, max_types = 20):
+
+
+def feature_bucket_candidates(df):
     candidates = {}
 
     for col in df.columns.tolist():
         percents = df[col].value_counts(normalize = True).to_dict()
 
         for key, val in percents.items():
-            if (len(percents.keys()) < max_types or df[col].dtypes == np.dtype('O')) and val < 1/len(percents.keys()):
+            if df[col].dtypes == np.dtype('O') and val < 1/len(percents.keys()):
                 if col in candidates:
                     candidates[col].append((key, val, 1/len(percents.keys())))
                 else:
