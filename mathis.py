@@ -75,18 +75,18 @@ def corrs_selection(df, col, threshold = .5):
 
 
 
-def feature_bucket_candidates(df):
+def feature_bucket_candidates(df, threshold = .02):
     candidates = {}
 
     for col in df.columns.tolist():
-        percents = df[col].value_counts(normalize = True).to_dict()
+        percents = df[col].value_counts(normalize = True, dropna = False).to_dict()
 
         for key, val in percents.items():
-            if df[col].dtypes == np.dtype('O') and val < 1/len(percents.keys()):
+            if df[col].dtypes == np.dtype('O') and val < threshold:
                 if col in candidates:
-                    candidates[col].append((key, val, 1/len(percents.keys())))
+                    candidates[col].append((key, val, threshold))
                 else:
-                    candidates[col] = [(key, val, 1/len(percents.keys()))]
+                    candidates[col] = [(key, val, threshold)]
 
     return candidates
 
@@ -118,10 +118,13 @@ def map_buckets(df, buckets):
     for col, bucket_list in buckets.items():
         for recommendation in bucket_list:
             if len(recommendation) > 1:
-                recommendation.sort()
                 strings = map(str, recommendation)
                 new_label = '(' + "_".join(strings) + ')'
 
                 df[col] = df[col].map(lambda x: new_label if x in recommendation else x)
 
     return df
+
+def is_binary_col(series):
+    value_dict = series.value_counts().to_dict()
+    return series.dtype == np.dtype('int64') and len(value_dict) == 2 and 0 in value_dict and 1 in value_dict
