@@ -128,3 +128,26 @@ def map_buckets(df, buckets):
 def is_binary_col(series):
     value_dict = series.value_counts().to_dict()
     return series.dtype == np.dtype('int64') and len(value_dict) == 2 and 0 in value_dict and 1 in value_dict
+
+def colinearity_count(df, columns, threshold = .5):
+    corr = df.corr()
+    counts = {key: 0 for key in columns}
+
+    for row in columns:
+        for col in columns:
+            if corr[row][col] > threshold and row != col:
+                counts[row] += 1
+
+    return counts
+
+def colinearity_pairs(df, columns, threshold = .5):
+    corr = df.corr()
+    pairs = {key: 0 for key in columns}
+
+    for row in columns:
+        pairs[row] = []
+        for col in columns:
+            if corr[row][col] > threshold and row != col:
+                pairs[row].append(col)
+
+    return {col: pair for col, pair in pairs.items() if pair != []}
